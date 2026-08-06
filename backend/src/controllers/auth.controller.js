@@ -2,129 +2,192 @@ const bcrypt = require("bcryptjs");
 
 const User = require("../models/user.model");
 const generateToken = require("../utils/generateToken");
+const asyncHandler = require("../utils/asyncHandler");
+const cookieOptions = require("../utils/cookieOptions");
 
+// =======================
 // Register User
-const registerUser = async (req, res) => {
-  try {
-    const { name, email, password } = req.body;
+// =======================
 
-    // Check if user already exists
-    const existingUser = await User.findOne({ email });
+const registerUser = asyncHandler(async (req, res) => {
+  const { name, password } = req.body;
+  const email = req.body.email.toLowerCase();
 
-    if (existingUser) {
-      return res.status(400).json({
-        success: false,
-        message: "Email already exists",
-      });
-    }
+  const existingUser = await User.findOne({ email });
 
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Create user
-    const user = await User.create({
-      name,
-      email,
-      password: hashedPassword,
-    });
-
-    // Generate JWT
-    const token = generateToken(user._id);
-
-res.cookie("token", token, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
-  maxAge: 7 * 24 * 60 * 60 * 1000,
-});
-
-return res.status(201).json({
-  success: true,
-  message: "User registered successfully",
-  user: {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    avatar: user.avatar,
-  },
-});
-
-  } catch (error) {
-    return res.status(500).json({
+  if (existingUser) {
+    return res.status(400).json({
       success: false,
-      message: error.message,
+      message: "Email already exists",
     });
   }
-};
 
-// Login User (abhi next step me banayenge)
-const loginUser = async (req, res) => {
-  try {
-    const { email, password } = req.body;
+  const hashedPassword = await bcrypt.hash(password, 10);
 
-    // Check user
-    const user = await User.findOne({ email });
+  const user = await User.create({
+    name,
+    email,
+    password: hashedPassword,
+  });
 
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    // Compare password
-    const isPasswordMatched = await bcrypt.compare(
-      password,
-      user.password
-    );
-
-    if (!isPasswordMatched) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid email or password",
-      });
-    }
-
-    // Generate token
   const token = generateToken(user._id);
 
-res.cookie("token", token, {
-  httpOnly: true,
-  secure: process.env.NODE_ENV === "production",
-  sameSite: "strict",
-  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  res.cookie("token", token, cookieOptions);
+
+  return res.status(201).json({
+    success: true,
+    message: "User registered successfully",
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+    },
+  });
 });
 
-return res.status(200).json({
-  success: true,
-  message: "Login successful",
-  user: {
-    id: user._id,
-    name: user.name,
-    email: user.email,
-    avatar: user.avatar,
-  },
-});
+// =======================
+// Login User
+// =======================
 
-  } catch (error) {
-    return res.status(500).json({
+const loginUser = asyncHandler(async (req, res) => {
+  const { password } = req.body;
+  const email = req.body.email.toLowerCase();
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.status(401).json({
       success: false,
-      message: error.message,
+      message: "Invalid email or password",
     });
   }
-};
 
-// Current User (abhi next step me banayenge)
-const getCurrentUser = async (req, res) => {
+  const isPasswordMatched = await bcrypt.compare(
+    password,
+    user.password
+  );
+
+  if (!isPasswordMatched) {
+    return res.status(401).json({
+      success: false,
+      message: "Invalid email or password",
+    });
+  }
+
+  const token = generateToken(user._id);
+
+  res.cookie("token", token, cookieOptions);
+
+  return res.status(200).json({
+    success: true,
+    message: "Login successful",
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+    },
+  });
+});
+
+// =======================
+// Current User
+// =======================
+
+const getCurrentUser = asyncHandler(async (req, res) => {
   return res.status(200).json({
     success: true,
     message: "User fetched successfully",
     user: req.user,
   });
-};
+});
+
+// =======================
+// Logout User
+// =======================
+
+const logoutUser = asyncHandler(async (req, res) => {
+  res.clearCookie("token", cookieOptions);
+
+  return res.status(200).json({
+    success: true,
+    message: "Logout successful",
+  });
+});
+
+// =======================
+// Update Profile
+// =======================
+
+const updateProfile = asyncHandler(async (req, res) => {
+  const { name, avatar } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  if (!user) {
+    return res.status(404).json({
+      success: false,
+      message: "User not found",
+    });
+  }
+
+  if (name) user.name = name;
+
+  if (avatar) user.avatar = avatar;
+
+  await user.save();
+
+  return res.status(200).json({
+    success: true,
+    message: "Profile updated successfully",
+    user: {
+      id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: user.avatar,
+    },
+  });
+});
+
+// =======================
+// Change Password
+// =======================
+
+const changePassword = asyncHandler(async (req, res) => {
+  const { oldPassword, newPassword } = req.body;
+
+  const user = await User.findById(req.user._id);
+
+  const isPasswordMatched = await bcrypt.compare(
+    oldPassword,
+    user.password
+  );
+
+  if (!isPasswordMatched) {
+    return res.status(400).json({
+      success: false,
+      message: "Old password is incorrect",
+    });
+  }
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+
+  user.password = hashedPassword;
+
+  await user.save();
+
+  return res.status(200).json({
+    success: true,
+    message: "Password changed successfully",
+  });
+});
 
 module.exports = {
   registerUser,
   loginUser,
-  getCurrentUser,
+ getCurrentUser,
+  logoutUser,
+  updateProfile,
+  changePassword,
 };
