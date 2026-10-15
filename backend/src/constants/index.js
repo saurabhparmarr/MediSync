@@ -15,4 +15,6 @@ const APPOINTMENT_STATUS = Object.freeze({
   COMPLETED: "completed",
 });
 
-module.exports = { ROLES, SLOT_STATUS, APPOINTMENT_STATUS };
+const COOKIE_NAME = "token";
+
+module.exports = { ROLES, SLOT_STATUS, APPOINTMENT_STATUS, COOKIE_NAME };

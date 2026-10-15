@@ -2,7 +2,7 @@ const dotenv = require("dotenv");
 
 dotenv.config();
 
-const required = ["MONGO_URI"];
+const required = ["MONGO_URI", "JWT_SECRET"];
 
 required.forEach((key) => {
   if (!process.env[key]) {
@@ -14,6 +14,8 @@ const env = Object.freeze({
   nodeEnv: process.env.NODE_ENV || "development",
   port: Number(process.env.PORT) || 5000,
   mongoUri: process.env.MONGO_URI,
+  jwtSecret: process.env.JWT_SECRET,
+  jwtExpiresIn: process.env.JWT_EXPIRES_IN || "7d",
 });
 
 module.exports = env;

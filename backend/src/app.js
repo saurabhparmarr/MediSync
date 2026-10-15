@@ -1,15 +1,15 @@
 const express = require("express");
-const { notFound, errorHandler, asyncHandler } = require("./middlewares/error.middleware");
-const ApiError = require("./utils/ApiError");
+const cookieParser = require("cookie-parser");
+const { notFound, errorHandler } = require("./middlewares/error.middleware");
 
 const app = express();
 
 app.use(express.json());
+app.use(cookieParser());
 
 app.get("/health", (req, res) => {
   res.status(200).json({ status: "ok" });
 });
-
 
 app.use(notFound);
 app.use(errorHandler);
