@@ -14,7 +14,10 @@ const APPOINTMENT_STATUS = Object.freeze({
   CANCELLED: "cancelled",
   COMPLETED: "completed",
 });
-
+const IDEMPOTENCY_STATUS = Object.freeze({
+  PROCESSING: "processing",
+  COMPLETED: "completed",
+});
 const COOKIE_NAME = "token";
 
-module.exports = { ROLES, SLOT_STATUS, APPOINTMENT_STATUS, COOKIE_NAME };
+module.exports = { ROLES, SLOT_STATUS, APPOINTMENT_STATUS, IDEMPOTENCY_STATUS, COOKIE_NAME };
